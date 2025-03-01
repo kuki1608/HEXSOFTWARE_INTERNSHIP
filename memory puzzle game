@@ -1,0 +1,98 @@
+import tkinter as tk
+import random
+import time
+
+# Define the main Memory Game class
+class MemoryPuzzleGame:
+    def _init_(self, root, rows=4, cols=4, time_limit=30):
+        self.root = root
+        self.rows = rows
+        self.cols = cols
+        self.time_limit = time_limit
+        self.card_values = [i // 2 for i in range(rows * cols)]  # Values from 0-7 for 16 cards
+        self.flipped_cards = []  # Keep track of flipped cards
+        self.pair_count = 0
+        self.start_time = time.time()
+        
+        # Shuffle the cards randomly
+        random.shuffle(self.card_values)
+
+        # Create the grid of buttons for the cards
+        self.buttons = {}
+        self.create_board()
+
+        # Set up a label to display the time remaining
+        self.time_label = tk.Label(root, text=f"Time left: {self.time_limit}s", font=("Helvetica", 14))
+        self.time_label.grid(row=0, column=0, columnspan=4)  # Use grid to place the label
+
+        # Run the game timer
+        self.update_timer()
+
+    def create_board(self):
+        """Create the grid of buttons (cards)"""
+        for row in range(self.rows):
+            for col in range(self.cols):
+                index = row * self.cols + col
+                button = tk.Button(self.root, text="?", width=10, height=3, font=("Helvetica", 20), command=lambda index=index: self.flip_card(index))
+                button.grid(row=row+1, column=col)  # Start from row=1 to leave space for time label
+                self.buttons[index] = button
+
+    def flip_card(self, index):
+        """Flip the card and check for matches"""
+        if len(self.flipped_cards) < 2 and index not in self.flipped_cards:
+            self.flipped_cards.append(index)
+            self.buttons[index].config(text=str(self.card_values[index]))
+
+            # Check if two cards are flipped
+            if len(self.flipped_cards) == 2:
+                self.check_for_match()
+
+    def check_for_match(self):
+        """Check if the two flipped cards match"""
+        idx1, idx2 = self.flipped_cards
+        if self.card_values[idx1] == self.card_values[idx2]:
+            self.pair_count += 1
+            if self.pair_count == (self.rows * self.cols) // 2:
+                self.end_game("You Win!")
+        else:
+            # Hide the cards again after a brief delay
+            self.root.after(500, self.hide_cards)
+
+    def hide_cards(self):
+        """Hide the cards that do not match"""
+        for idx in self.flipped_cards:
+            self.buttons[idx].config(text="?")
+        self.flipped_cards.clear()
+
+    def update_timer(self):
+        """Update the timer and check if time is over"""
+        elapsed_time = time.time() - self.start_time
+        remaining_time = max(self.time_limit - int(elapsed_time), 0)
+        self.time_label.config(text=f"Time left: {remaining_time}s")
+
+        if remaining_time > 0:
+            self.root.after(1000, self.update_timer)
+        else:
+            self.end_game("Time's Up!")
+
+    def end_game(self, message):
+        """End the game and show a message"""
+        for button in self.buttons.values():
+            button.config(state=tk.DISABLED)  # Disable all buttons
+        self.time_label.config(text=message)
+
+
+# Set up the main Tkinter window
+def start_game():
+    root = tk.Tk()
+    root.title("Memory Puzzle Game")
+
+    # Instantiate the MemoryPuzzleGame class
+    game = MemoryPuzzleGame(root)
+
+    root.mainloop()
+
+
+# Run the game
+if _name_ == "_main_":
+    start_game()
